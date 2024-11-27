@@ -2,7 +2,7 @@ import sys
 import pygame as pg
 import numpy as np
 
-# Mandelbrot-Funktion mit NumPy-Vektorisierung
+# Mandelbrot-Funktion mit NumPy
 def brot_set(xmin, xmax, ymin, ymax, width, height, max_iter):
     x = np.linspace(xmin, xmax, width)
     y = np.linspace(ymin, ymax, height)
@@ -11,40 +11,42 @@ def brot_set(xmin, xmax, ymin, ymax, width, height, max_iter):
 
     Z = np.zeros(C.shape, dtype=complex)
     iterations = np.zeros(C.shape, dtype=int)
+    
+    # Maske für non-divergend Punkte
+    mask = np.ones(C.shape, dtype=bool)
 
-    # Iterationen für jedes Pixel
     for i in range(max_iter):
-        mask = np.abs(Z) <= 2  # Nur Punkte, die noch im Bereich sind
-        Z[mask] = Z[mask] ** 2 + C[mask]
-        iterations[mask] += mask[mask]  # Iteration erhöhen
+        Z[mask] = Z[mask]**2 + C[mask]  # Update nur non-diverged Punkte
+        mask = (np.abs(Z) <= 2)  # Update Maske für gebundene Punkte
+        iterations[mask] = i + 1  # Update Zähler
 
     return iterations
 
 # Farbschemata (aus Chat-GPT generiert)
-def grayscale(iteration, max_iter):
+def graustufen(iteration, max_iter):
     t = iteration / max_iter
     gray = int(255 * t)
     return (gray, gray, gray)
 
-def blue_white(iteration, max_iter):
+def blauweiss(iteration, max_iter):
     t = iteration / max_iter
     return (0, 0, int(255 * t))
 
-def rainbow(iteration, max_iter):
+def regenbogen(iteration, max_iter):
     t = iteration / max_iter
     r = int(255 * t)
     g = int(255 * (1 - t))
     b = int(255 * (0.5 + 0.5 * t))
     return (r, g, b)
 
-def green_purple(iteration, max_iter):
+def grünlila(iteration, max_iter):
     t = iteration / max_iter
     r = int(255 * (1 - t))
     g = int(255 * t)
     b = int(255 * (t * 0.5))
     return (r, g, b)
 
-def bright(iteration, max_iter):
+def hell(iteration, max_iter):
     t = iteration / max_iter
     r = int(255 * t)
     g = int(255 * (0.8 * t))
@@ -79,19 +81,19 @@ def custom_color_scheme(iteration, max_iter):
     return interpolate_color(t)
 
 # Reihenfolge Farbschemata
-color_schemes = [custom_color_scheme, grayscale, blue_white, rainbow, green_purple, bright]
+color_schemes = [custom_color_scheme, graustufen, blauweiss, regenbogen, grünlila, hell]
 
 def main():
     # Parameter für die Mandelbrotmenge
     xmin, xmax, ymin, ymax = -2.0, 1.0, -1.5, 1.5
-    width, height = 400, 400  # Auflösung
-    max_iter = 100
+    width, height = 500, 500    # Auflösung
+    max_iter = 100              # Anzahl der Iterationen
 
     # Initialisieren pygame
     pg.init()
-    screen = pg.display.set_mode((width, height))
-    pg.display.set_caption("Matzes Mandelbrot-Generator")
-    clock = pg.time.Clock()
+    screen = pg.display.set_mode((width, height))           # Auflösung aus dem Absatz oben
+    pg.display.set_caption("Matzes Mandelbrot-Generator")   # Titel
+    clock = pg.time.Clock()                                 # Initialisierung der Ticks
 
     # Mandelbrotmenge berechnen
     mandelbrot_set = brot_set(xmin, xmax, ymin, ymax, width, height, max_iter)
@@ -112,9 +114,11 @@ def main():
     while running:
         # Steuerung
         for event in pg.event.get():
+            # Wenn ESC gedrückt wird => Schließe Simulation
             if event.type == pg.QUIT or (event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE):
                 pg.quit()
                 sys.exit()
+                # Farbsteuerung durch Pfeiltasten
             elif event.type == pg.KEYDOWN:
                 if event.key == pg.K_RIGHT:  # Nächstes Farbschema
                     current_color_scheme = (current_color_scheme + 1) % len(color_schemes)
@@ -122,6 +126,7 @@ def main():
                     current_color_scheme = (current_color_scheme - 1) % len(color_schemes)
                 elif pg.K_1 <= event.key <= pg.K_9:  # Direktwahl der Farbschemata 1-9
                     current_color_scheme = (event.key - pg.K_1) % len(color_schemes)
+            # Kasten zum Zoomen
             elif event.type == pg.MOUSEBUTTONDOWN:
                 if event.button == 1:  # Linke Maustaste
                     dragging = True
@@ -165,7 +170,7 @@ def main():
                     # Mandelbrotmenge neu berechnen
                     mandelbrot_set = brot_set(xmin, xmax, ymin, ymax, width, height, max_iter)
 
-        # Aktualisiere die Mandelbrot-Surface
+        # Aktualisiere Mandelbrot-Surface
         get_color = color_schemes[current_color_scheme]
         for y in range(height):
             for x in range(width):
@@ -177,9 +182,9 @@ def main():
         screen.blit(mandelbrot_surface, (0, 0))
         
         # FPS-Wert abrufen und anzeigen
-        fps = clock.get_fps()  # Abrufen der aktuellen FPS
-        font = pg.font.SysFont("Arial", 20)
-        fps_text = font.render(f"FPS: {fps:.2f}", True, (255, 255, 255))
+        fps = clock.get_fps()   # Abrufen der aktuellen FPS
+        font = pg.font.SysFont("Arial", 20) # Schriftart
+        fps_text = font.render(f"FPS: {fps:.2f}", True, (255, 0, 0)) # FPS rot
         screen.blit(fps_text, (10, 10))  # FPS oben links anzeigen
 
         # Box zeichnen, falls Dragging aktiv ist
@@ -192,7 +197,7 @@ def main():
             # Zeichne das quadratische Rechteck
             pg.draw.rect(
                 screen,
-                (255, 255, 255),
+                (255, 0, 0),    # Rechteck rot
                 pg.Rect(x_min, y_min, size, size),
                 1
             )
