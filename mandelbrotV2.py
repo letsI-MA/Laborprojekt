@@ -2,56 +2,56 @@ import sys
 import pygame as pg
 import numpy as np
 
-# Mandelbrot-Funktion mit NumPy
+# Mandelbrot-Funktion Vektoren
 def brot_set(xmin, xmax, ymin, ymax, width, height, max_iter):
     x = np.linspace(xmin, xmax, width)
     y = np.linspace(ymin, ymax, height)
     X, Y = np.meshgrid(x, y)
     C = X + 1j * Y  # Erstelle das komplexe Array
 
-    Z = np.zeros(C.shape, dtype=complex)
+    Z = np.zeros_like(C)
     iterations = np.zeros(C.shape, dtype=int)
     
     # Maske für non-divergend Punkte
     mask = np.ones(C.shape, dtype=bool)
 
     for i in range(max_iter):
-        Z[mask] = Z[mask]**2 + C[mask]  # Update nur non-diverged Punkte
+        Z[mask] = Z[mask]** 2 + C[mask]  # Update nur non-diverged Punkte
         mask = (np.abs(Z) <= 2)  # Update Maske für gebundene Punkte
-        iterations[mask] = i + 1  # Update Zähler
+        iterations[mask] = i  # Update Zähler
 
     return iterations
 
 # Farbschemata (aus Chat-GPT generiert)
 def graustufen(iteration, max_iter):
     t = iteration / max_iter
-    gray = int(255 * t)
-    return (gray, gray, gray)
+    gray = (255 * t).astype(int)
+    return np.dstack([gray, gray, gray])
 
 def blauweiss(iteration, max_iter):
-    t = iteration / max_iter
-    return (0, 0, int(255 * t))
+    t = (iteration / max_iter).astype(int)
+    return np.dstack([np.zeros_like(t), np.zeros_like(t), 255 * t])
 
 def regenbogen(iteration, max_iter):
     t = iteration / max_iter
-    r = int(255 * t)
-    g = int(255 * (1 - t))
-    b = int(255 * (0.5 + 0.5 * t))
-    return (r, g, b)
+    r = (255 * t).astype(int)
+    g = (255 * (1 - t)).astype(int)
+    b = (255 * (0.5 + 0.5 * t)).astype(int)
+    return np.dstack([r, g, b])
 
 def grünlila(iteration, max_iter):
     t = iteration / max_iter
-    r = int(255 * (1 - t))
-    g = int(255 * t)
-    b = int(255 * (t * 0.5))
-    return (r, g, b)
+    r = (255 * (1 - t)).astype(int)
+    g = (255 * t).astype(int)
+    b = (255 * (0.5 * t)).astype(int)
+    return np.dstack([r, g, b])
 
 def hell(iteration, max_iter):
     t = iteration / max_iter
-    r = int(255 * t)
-    g = int(255 * (0.8 * t))
-    b = int(255 * (0.6 * t))
-    return (r, g, b)
+    r = (255 * t).astype(int)
+    g = (255 * (0.8 * t)).astype(int)
+    b = (255 * (0.6 * t)).astype(int)
+    return np.dstack([r, g, b])
 
 # Farbdefinitionen basierend auf Positionen (Wikipedia-Style)
 color_points = [
@@ -62,23 +62,22 @@ color_points = [
     (0.8575, (0, 2, 0))
 ]
 
-def interpolate_color(position):
-    for i in range(len(color_points) - 1):
-        pos1, col1 = color_points[i]
-        pos2, col2 = color_points[i + 1]
-        if pos1 <= position <= pos2:
-            # Interpolation zwischen den beiden Punkten
-            t = (position - pos1) / (pos2 - pos1)
-            r = int(col1[0] + t * (col2[0] - col1[0]))
-            g = int(col1[1] + t * (col2[1] - col1[1]))
-            b = int(col1[2] + t * (col2[2] - col1[2]))
-            return (r, g, b)
-    # Rückgabe der letzten Farbe, falls Position > max Position
-    return color_points[-1][1]
+def interpolate_color(iterations, max_iter):
+    t = iterations / max_iter
+    color = np.zeros((*t.shape, 3), dtype=int)
 
-def custom_color_scheme(iteration, max_iter):
-    t = iteration / max_iter
-    return interpolate_color(t)
+    for i in range(len(color_points) - 1):
+        p1, c1 = color_points[i]
+        p2, c2 = color_points[i + 1]
+        mask = (p1 <= t) & (t < p2)
+        interp = (t[mask] - p1) / (p2 - p1)
+        for j in range(3):
+            color[..., j][mask] = (c1[j] + interp * (c2[j] - c1[j])).astype(int)
+
+    return color
+
+def custom_color_scheme(iterations, max_iter):
+    return interpolate_color(iterations, max_iter)
 
 # Reihenfolge Farbschemata
 color_schemes = [custom_color_scheme, graustufen, blauweiss, regenbogen, grünlila, hell]
@@ -87,7 +86,7 @@ def main():
     # Parameter für die Mandelbrotmenge
     xmin, xmax, ymin, ymax = -2.0, 1.0, -1.5, 1.5
     width, height = 500, 500    # Auflösung
-    max_iter = 100              # Anzahl der Iterationen
+    max_iter = 500              # Anzahl der Iterationen
 
     # Initialisieren pygame
     pg.init()
@@ -97,9 +96,6 @@ def main():
 
     # Mandelbrotmenge berechnen
     mandelbrot_set = brot_set(xmin, xmax, ymin, ymax, width, height, max_iter)
-
-    # Erstelle eine Surface für das Mandelbrot-Bild
-    mandelbrot_surface = pg.Surface((width, height))
     
     # Start mit dem ersten Farbschema
     current_color_scheme = 0  
@@ -169,17 +165,10 @@ def main():
 
                     # Mandelbrotmenge neu berechnen
                     mandelbrot_set = brot_set(xmin, xmax, ymin, ymax, width, height, max_iter)
-
-        # Aktualisiere Mandelbrot-Surface
-        get_color = color_schemes[current_color_scheme]
-        for y in range(height):
-            for x in range(width):
-                iteration = mandelbrot_set[y, x]
-                color = get_color(iteration, max_iter)
-                mandelbrot_surface.set_at((x, y), color)
-
-        # Zeichne das Mandelbrot-Bild auf den Bildschirm
-        screen.blit(mandelbrot_surface, (0, 0))
+        
+        # Farbe selektieren
+        colors = color_schemes[current_color_scheme](mandelbrot_set, max_iter)
+        pg.surfarray.blit_array(screen, np.transpose(colors, (1, 0, 2)))
         
         # FPS-Wert abrufen und anzeigen
         fps = clock.get_fps()   # Abrufen der aktuellen FPS
@@ -195,12 +184,7 @@ def main():
             y_min = min(current_pos[1], start_pos[1])
 
             # Zeichne das quadratische Rechteck
-            pg.draw.rect(
-                screen,
-                (255, 0, 0),    # Rechteck rot
-                pg.Rect(x_min, y_min, size, size),
-                1
-            )
+            pg.draw.rect(screen, (255, 0, 0), pg.Rect(x_min, y_min, size, size), 1)
             
         # FPS begrenzen
         clock.tick(60)
