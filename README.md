@@ -23,8 +23,7 @@ remains bounded as ***n→∞***.
 - For each point ***c***, iterate the formula up to a maximum number of steps
 - Check if the magnitude ***z<sub>n</sub>*** remains ***≤2***. If so, c is part of the Mandelbrot set
 
-The first Version is brot.py was just a PoC on matplotlib:
-https://github.com/letsI-MA/Laborprojekt/blob/main/brot.py
+The first Version was just a PoC on matplotlib:
 
 ![brot1](https://github.com/user-attachments/assets/dcd5d943-daa5-4f83-973e-ec6f35a34e25)
 
@@ -37,8 +36,29 @@ In Version 2 I implemented the code into pygame and added these features:
 ![brot2](https://github.com/user-attachments/assets/cfeecf94-5f0f-4583-baf4-3736d35f6e44)
 
 
-With the help of ChatGPT I've switched from an array-based storage for the elements of the Mandelbrot-Function to vectors which enhanced
-the average FPS from 1.2 to 3.5 in 500x500 resolution 🙌.
+With the help of ChatGPT I've switched to vector-based rendering, which enhanced the average FPS from 1.2 to 60 in 500x500 resolution 🙌.
+
+## How ChatGPT did it
+
+```
+def brot_set(xmin, xmax, ymin, ymax, width, height, max_iter):
+    x = np.linspace(xmin, xmax, width)
+    y = np.linspace(ymin, ymax, height)
+    X, Y = np.meshgrid(x, y)
+    C = X + 1j * Y
+```
+It uses NumPy as np `meshgrid` to to process the list in its entirety instead of each `(x, y)` pixel individually.
+
+```
+color_array = np.zeros((height, width, 3), dtype=np.uint8)
+for i in range(height):
+    color_array[i] = [get_color(val, max_iter) for val in mandelbrot_set[i]]
+pg.surfarray.blit_array(mandelbrot_surface, color_array)
+```
+Here it generates an array of colors in one step and creates a surface from the `color_array` afterwards.
+The 2D `color_array` stores the RGB color values for each pixel.
+
+
 
 ## Controls
 
@@ -50,7 +70,7 @@ the average FPS from 1.2 to 3.5 in 500x500 resolution 🙌.
 ## Sources
 
 ### NumPy
-[NumPy Documentation](https://numpy.org/doc/2.0/)
+- [NumPy Documentation](https://numpy.org/doc/2.0/)
 
 ### Pygame
 
