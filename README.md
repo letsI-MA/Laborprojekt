@@ -1,6 +1,6 @@
 # This is a Mandelbrot Set Explorer
 
-The idea was to display the __Mandelbrot Set__ in a somewhat appealing manner.
+The idea was to display the __Mandelbrot Set__ in a appealing manner.
 ***This project is for me to learn and adapt to problems in software development.***
 I did extensive amounts of comments in Version 1 so I can learn and keep the information close by.
 At the bottom of this readme I will provide my sources.
@@ -38,7 +38,7 @@ In Version 2 I implemented the code into pygame and added these features:
 
 With the help of ChatGPT I've switched to vector-based rendering, which enhanced the average FPS from 1.2 to 60 in 500x500 resolution 🙌.
 
-## How ChatGPT did it
+## Vectors
 
 ```
 def brot_set(xmin, xmax, ymin, ymax, width, height, max_iter):
@@ -47,7 +47,7 @@ def brot_set(xmin, xmax, ymin, ymax, width, height, max_iter):
     X, Y = np.meshgrid(x, y)
     C = X + 1j * Y
 ```
-It uses NumPy as np `meshgrid` to to process the list in its entirety instead of each `(x, y)` pixel individually.
+It uses NumPy as np `meshgrid` to process the list in its entirety instead of each `(x, y)` pixel individually.
 
 ```
 color_array = np.zeros((height, width, 3), dtype=np.uint8)
